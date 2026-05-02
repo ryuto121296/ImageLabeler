@@ -2,7 +2,7 @@ import os
 import cv2
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QFileDialog, QSplitter, QButtonGroup, QMessageBox, QColorDialog,
+    QPushButton, QLabel, QFileDialog, QFrame, QButtonGroup, QMessageBox, QColorDialog, QComboBox,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QImage, QKeyEvent, QPixmap
@@ -57,49 +57,55 @@ class PatchWindow(QMainWindow):
         vbox.setContentsMargins(8, 8, 8, 8)
         vbox.setSpacing(6)
 
-        # ── top bar ──────────────────────────────────────────────────
-        top = QHBoxLayout()
+        # ── top panel (fixed 200 px) ──────────────────────────────────
+        top_widget = QWidget()
+        top_widget.setFixedHeight(200)
+        top_layout = QVBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 4, 0, 4)
+        top_layout.setSpacing(8)
+
+        # Row 1: action bar
+        action_bar = QHBoxLayout()
         for text, slot in [("Save", self._save), ("Load", self._load), ("Export", self._export)]:
             btn = QPushButton(text)
             btn.setFixedHeight(28)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             btn.clicked.connect(slot)
-            top.addWidget(btn)
-        top.addSpacing(8)
+            action_bar.addWidget(btn)
+        action_bar.addSpacing(8)
         path_lbl = QLabel(self._project.dataset_path)
         path_lbl.setStyleSheet("color: #888;")
-        top.addWidget(path_lbl)
-        top.addStretch()
+        action_bar.addWidget(path_lbl)
+        action_bar.addStretch()
         self._counter_lbl = QLabel()
         self._counter_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        top.addWidget(self._counter_lbl)
-        vbox.addLayout(top)
+        action_bar.addWidget(self._counter_lbl)
+        top_layout.addLayout(action_bar)
 
-        # ── center ────────────────────────────────────────────────────
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color: #444;")
+        top_layout.addWidget(sep)
 
-        # Left: class panel
-        class_widget = QWidget()
-        class_layout = QVBoxLayout(class_widget)
-        class_layout.setContentsMargins(4, 4, 4, 4)
-        class_layout.setSpacing(4)
-        class_layout.addWidget(QLabel("<b>Classes</b>"))
-
+        # Row 2: class buttons (horizontal, each with color swatch)
+        class_bar = QHBoxLayout()
+        class_bar.setSpacing(4)
         self._class_group = QButtonGroup(self)
         self._class_group.setExclusive(True)
         self._color_btns: list[QPushButton] = []
 
         for i, cls in enumerate(self._project.classes):
             r, g, b = cls.color
-            row_w = QWidget()
-            row_l = QHBoxLayout(row_w)
-            row_l.setContentsMargins(0, 0, 0, 0)
-            row_l.setSpacing(4)
+            cell = QWidget()
+            cell_l = QHBoxLayout(cell)
+            cell_l.setContentsMargins(0, 0, 0, 0)
+            cell_l.setSpacing(2)
 
             cls_btn = QPushButton(f"[{i + 1}]  {cls.name}")
             cls_btn.setCheckable(True)
             cls_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            cls_btn.setFixedHeight(30)
+            cls_btn.setFixedHeight(38)
+            cls_btn.setMinimumWidth(100)
             cls_btn.setStyleSheet(
                 f"QPushButton {{ border-left: 5px solid rgb({r},{g},{b}); text-align: left; padding-left: 6px; }}"
                 f"QPushButton:checked {{ background-color: #3d5a80; }}"
@@ -108,7 +114,7 @@ class PatchWindow(QMainWindow):
             self._class_group.addButton(cls_btn, i)
 
             color_btn = QPushButton()
-            color_btn.setFixedSize(22, 22)
+            color_btn.setFixedSize(22, 38)
             color_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             color_btn.setStyleSheet(
                 f"background-color: rgb({r},{g},{b}); border: 1px solid #555; border-radius: 3px;"
@@ -116,29 +122,40 @@ class PatchWindow(QMainWindow):
             color_btn.clicked.connect(lambda _c, idx=i: self._edit_color(idx))
             self._color_btns.append(color_btn)
 
-            row_l.addWidget(cls_btn, 1)
-            row_l.addWidget(color_btn)
-            class_layout.addWidget(row_w)
+            cell_l.addWidget(cls_btn)
+            cell_l.addWidget(color_btn)
+            class_bar.addWidget(cell)
 
         if self._class_group.buttons():
             self._class_group.buttons()[0].setChecked(True)
-        class_layout.addStretch()
+        class_bar.addStretch()
+        top_layout.addLayout(class_bar)
 
-        self._stats_lbl = QLabel()
-        self._stats_lbl.setStyleSheet("color: #888; font-size: 10px;")
-        self._stats_lbl.setWordWrap(True)
-        class_layout.addWidget(self._stats_lbl)
+        sep2 = QFrame()
+        sep2.setFrameShape(QFrame.Shape.HLine)
+        sep2.setStyleSheet("color: #444;")
+        top_layout.addWidget(sep2)
 
-        class_widget.setMinimumWidth(200)
-        class_widget.setMaximumWidth(260)
-        splitter.addWidget(class_widget)
+        # Row 3: default class for unlabeled cells (export only)
+        default_bar = QHBoxLayout()
+        default_bar.addWidget(QLabel("Default for unlabeled cells (export only):"))
+        self._default_class_combo = QComboBox()
+        self._default_class_combo.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._default_class_combo.addItem("— none  (keep as -1)")
+        for cls in self._project.classes:
+            self._default_class_combo.addItem(cls.name)
+        default_bar.addWidget(self._default_class_combo)
+        default_bar.addStretch()
+        top_layout.addLayout(default_bar)
 
+        top_layout.addStretch()
+        vbox.addWidget(top_widget)
+
+        # ── viewer ────────────────────────────────────────────────────
         self._viewer = PatchViewer()
         self._viewer.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._viewer.set_current_class(0)
-        splitter.addWidget(self._viewer)
-        splitter.setStretchFactor(1, 1)
-        vbox.addWidget(splitter)
+        vbox.addWidget(self._viewer)
 
         # ── bottom nav ────────────────────────────────────────────────
         nav = QHBoxLayout()
@@ -242,7 +259,6 @@ class PatchWindow(QMainWindow):
         total = len(self._images)
         mark = "✓" if filename in self._project.labels else "○"
         self._counter_lbl.setText(f"{mark} {self._index + 1}/{total}  |  {labeled} labeled")
-        self._stats_lbl.setText(f"Labeled: {labeled} / {total}")
 
     # ------------------------------------------------------------------
     # File operations
@@ -288,8 +304,10 @@ class PatchWindow(QMainWindow):
         folder = QFileDialog.getExistingDirectory(self, "Select Export Folder")
         if not folder:
             return
+        # combo index 0 = no default (-1), index 1 = class 0, index 2 = class 1, …
+        default_class = self._default_class_combo.currentIndex() - 1
         try:
-            export_patch(self._project, folder)
+            export_patch(self._project, folder, default_class=default_class)
         except Exception as e:
             QMessageBox.critical(self, "Export failed", str(e))
             return

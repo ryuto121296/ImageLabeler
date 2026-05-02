@@ -40,7 +40,7 @@ def export_classification(project: ClassificationProject, output_path: str) -> N
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
 
-def export_patch(project: PatchProject, output_path: str) -> None:
+def export_patch(project: PatchProject, output_path: str, default_class: int = -1) -> None:
     img_dir = os.path.join(output_path, "img")
     os.makedirs(img_dir, exist_ok=True)
 
@@ -49,7 +49,11 @@ def export_patch(project: PatchProject, output_path: str) -> None:
         src = os.path.join(project.dataset_path, filename)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(img_dir, filename))
-            image_list.append({"filename": f"img/{filename}", "grid": grid})
+            if default_class >= 0:
+                resolved = [[default_class if ci == -1 else ci for ci in row] for row in grid]
+            else:
+                resolved = grid
+            image_list.append({"filename": f"img/{filename}", "grid": resolved})
 
     payload = {
         "classes": [{"name": c.name, "color": list(c.color)} for c in project.classes],

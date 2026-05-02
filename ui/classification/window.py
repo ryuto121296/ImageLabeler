@@ -2,7 +2,7 @@ import os
 import cv2
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QFileDialog, QSplitter, QButtonGroup, QMessageBox,
+    QPushButton, QLabel, QFileDialog, QFrame, QButtonGroup, QMessageBox,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QImage, QKeyEvent, QPixmap
@@ -53,33 +53,39 @@ class ClassificationWindow(QMainWindow):
         vbox.setContentsMargins(8, 8, 8, 8)
         vbox.setSpacing(6)
 
-        # ── top bar ──────────────────────────────────────────────────
-        top = QHBoxLayout()
+        # ── top panel (fixed 200 px) ──────────────────────────────────
+        top_widget = QWidget()
+        top_widget.setFixedHeight(200)
+        top_layout = QVBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 4, 0, 4)
+        top_layout.setSpacing(8)
+
+        # Row 1: action bar
+        action_bar = QHBoxLayout()
         for text, slot in [("Save", self._save), ("Load", self._load), ("Export", self._export)]:
             btn = QPushButton(text)
             btn.setFixedHeight(28)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             btn.clicked.connect(slot)
-            top.addWidget(btn)
-        top.addSpacing(8)
+            action_bar.addWidget(btn)
+        action_bar.addSpacing(8)
         path_lbl = QLabel(self._project.dataset_path)
         path_lbl.setStyleSheet("color: #888;")
-        top.addWidget(path_lbl)
-        top.addStretch()
+        action_bar.addWidget(path_lbl)
+        action_bar.addStretch()
         self._counter_lbl = QLabel()
         self._counter_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        top.addWidget(self._counter_lbl)
-        vbox.addLayout(top)
+        action_bar.addWidget(self._counter_lbl)
+        top_layout.addLayout(action_bar)
 
-        # ── center: class panel + viewer ─────────────────────────────
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color: #444;")
+        top_layout.addWidget(sep)
 
-        class_widget = QWidget()
-        class_layout = QVBoxLayout(class_widget)
-        class_layout.setContentsMargins(4, 4, 4, 4)
-        class_layout.setSpacing(4)
-        class_layout.addWidget(QLabel("<b>Classes</b>"))
-
+        # Row 2: class buttons (horizontal)
+        class_bar = QHBoxLayout()
+        class_bar.setSpacing(6)
         self._class_group = QButtonGroup(self)
         self._class_group.setExclusive(True)
         for i, cls in enumerate(self._project.classes):
@@ -87,33 +93,28 @@ class ClassificationWindow(QMainWindow):
             btn = QPushButton(f"  [{i + 1}]  {cls.name}")
             btn.setCheckable(True)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            btn.setFixedHeight(34)
+            btn.setFixedHeight(38)
+            btn.setMinimumWidth(110)
             btn.setStyleSheet(
                 f"QPushButton {{ border-left: 5px solid rgb({r},{g},{b}); text-align: left; padding-left: 6px; }}"
                 f"QPushButton:checked {{ background-color: #3d5a80; }}"
             )
             btn.clicked.connect(lambda _c, idx=i: self._assign_class(idx))
             self._class_group.addButton(btn, i)
-            class_layout.addWidget(btn)
+            class_bar.addWidget(btn)
+        class_bar.addStretch()
+        top_layout.addLayout(class_bar)
 
         if self._class_group.buttons():
             self._class_group.buttons()[0].setChecked(True)
-        class_layout.addStretch()
 
-        self._stats_lbl = QLabel()
-        self._stats_lbl.setStyleSheet("color: #888; font-size: 10px;")
-        self._stats_lbl.setWordWrap(True)
-        class_layout.addWidget(self._stats_lbl)
+        top_layout.addStretch()
+        vbox.addWidget(top_widget)
 
-        class_widget.setMinimumWidth(180)
-        class_widget.setMaximumWidth(240)
-        splitter.addWidget(class_widget)
-
+        # ── viewer ────────────────────────────────────────────────────
         self._viewer = ImageViewer()
         self._viewer.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        splitter.addWidget(self._viewer)
-        splitter.setStretchFactor(1, 1)
-        vbox.addWidget(splitter)
+        vbox.addWidget(self._viewer)
 
         # ── bottom nav ────────────────────────────────────────────────
         nav = QHBoxLayout()
@@ -200,7 +201,6 @@ class ClassificationWindow(QMainWindow):
             if 0 <= ci < len(self._project.classes):
                 cls_tag = f"  [{self._project.classes[ci].name}]"
         self._counter_lbl.setText(f"{mark} {self._index + 1}/{total}  |  {labeled} labeled{cls_tag}")
-        self._stats_lbl.setText(f"Labeled: {labeled} / {total}")
 
     # ------------------------------------------------------------------
     # File operations
