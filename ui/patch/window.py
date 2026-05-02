@@ -66,12 +66,22 @@ class PatchWindow(QMainWindow):
 
         # Row 1: action bar
         action_bar = QHBoxLayout()
-        for text, slot in [("Save", self._save), ("Load", self._load), ("Export", self._export)]:
+        for text, slot in [
+            ("Save", self._save), ("Save As", self._save_as),
+            ("Load", self._load), ("Export", self._export),
+        ]:
             btn = QPushButton(text)
             btn.setFixedHeight(28)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             btn.clicked.connect(slot)
             action_bar.addWidget(btn)
+        action_bar.addSpacing(8)
+        clear_btn = QPushButton("Clear Labels")
+        clear_btn.setFixedHeight(28)
+        clear_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        clear_btn.setStyleSheet("color: #e06c6c;")
+        clear_btn.clicked.connect(self._clear_current)
+        action_bar.addWidget(clear_btn)
         action_bar.addSpacing(8)
         path_lbl = QLabel(self._project.dataset_path)
         path_lbl.setStyleSheet("color: #888;")
@@ -275,6 +285,25 @@ class PatchWindow(QMainWindow):
             self._save_path = path
         save_project(self._project, self._save_path)
         self.statusBar().showMessage("Saved successfully.", 3000)
+
+    def _save_as(self):
+        self._save_grid()
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Project As", "", "Image Labeler Project (*.ilproj)"
+        )
+        if not path:
+            return
+        self._save_path = path
+        save_project(self._project, self._save_path)
+        self.statusBar().showMessage(f"Saved as: {self._save_path}", 3000)
+
+    def _clear_current(self):
+        if not self._images:
+            return
+        filename = os.path.basename(self._images[self._index])
+        self._project.labels.pop(filename, None)
+        self._viewer.clear_grid()
+        self._update_counter()
 
     def _load(self):
         path, _ = QFileDialog.getOpenFileName(

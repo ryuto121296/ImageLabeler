@@ -53,6 +53,12 @@ class PatchViewer(ImageViewer):
     def get_grid_data(self) -> list[list[int]]:
         return [row[:] for row in self._grid_data]
 
+    def clear_grid(self) -> None:
+        for r in range(self._rows):
+            for c in range(self._cols):
+                self._grid_data[r][c] = -1
+                self._grid_items[r][c].setBrush(QColor(0, 0, 0, _UNLABELED_ALPHA))
+
     # ------------------------------------------------------------------
     # Overrides
     # ------------------------------------------------------------------
