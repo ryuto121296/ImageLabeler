@@ -2,15 +2,15 @@ import json
 import os
 import shutil
 
-from .project import ClassificationProject, PatchProject
+from .project import ClassificationProject, PatchProject, ObjectDetectionProject
 
 
-def save_project(project: ClassificationProject | PatchProject, path: str) -> None:
+def save_project(project: ClassificationProject | PatchProject | ObjectDetectionProject, path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(project.to_dict(), f, indent=2, ensure_ascii=False)
 
 
-def load_project(path: str) -> ClassificationProject | PatchProject:
+def load_project(path: str) -> ClassificationProject | PatchProject | ObjectDetectionProject:
     with open(path, "r", encoding="utf-8") as f:
         d = json.load(f)
     mode = d.get("mode")
@@ -18,6 +18,8 @@ def load_project(path: str) -> ClassificationProject | PatchProject:
         return ClassificationProject.from_dict(d)
     if mode == "patch_classification":
         return PatchProject.from_dict(d)
+    if mode == "object_detection":
+        return ObjectDetectionProject.from_dict(d)
     raise ValueError(f"Unknown project mode: {mode!r}")
 
 

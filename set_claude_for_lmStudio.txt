@@ -1,6 +1,2 @@
-# Claude Code -> LM Studio Configuration
-$env:ANTHROPIC_BASE_URL = "http://localhost:1234/v1"
-$env:ANTHROPIC_API_KEY = "lm-studio"
-
-# Fix for local models (prevents 90% slow-down)
-$env:CLAUDE_CODE_ATTRIBUTION_HEADER = "0"
+# run this. got method from `https://www.youtube.com/watch?v=Cyn_Dm05_eU`
+claude --settings .\.claude\settings.lm_studio.json

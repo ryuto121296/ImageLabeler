@@ -26,9 +26,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
 
         for text, slot in [
-            ("Image Classification",  self._open_classification),
-            ("Patch Classification",  self._open_patch),
-            ("Load Existing Project", self._load_project),
+            ("Image Classification",      self._open_classification),
+            ("Object Detection",          self._open_detection),
+            ("Patch Classification",      self._open_patch),
+            ("Load Existing Project",     self._load_project),
         ]:
             btn = QPushButton(text)
             btn.setFixedHeight(44)
@@ -51,9 +52,16 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             self._launch(PatchWindow(dlg.get_project()))
 
+    def _open_detection(self):
+        from ui.detection.setup_dialog import DetectionSetupDialog
+        from ui.detection.window import DetectionWindow
+        dlg = DetectionSetupDialog(self)
+        if dlg.exec():
+            self._launch(DetectionWindow(dlg.get_project()))
+
     def _load_project(self):
         from core.io import load_project
-        from core.project import ClassificationProject, PatchProject
+        from core.project import ClassificationProject, PatchProject, ObjectDetectionProject
         from ui.classification.window import ClassificationWindow
         from ui.patch.window import PatchWindow
 
@@ -70,9 +78,11 @@ class MainWindow(QMainWindow):
 
         if isinstance(proj, ClassificationProject):
             self._launch(ClassificationWindow(proj, save_path=path))
-        else:
-            from ui.patch.window import PatchWindow
+        elif isinstance(proj, PatchProject):
             self._launch(PatchWindow(proj, save_path=path))
+        else:
+            from ui.detection.window import DetectionWindow
+            self._launch(DetectionWindow(proj, save_path=path))
 
     def _launch(self, win):
         self._labeling_win = win

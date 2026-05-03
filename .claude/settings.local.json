@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(.venv\\\\Scripts\\\\pip install *)"
+      "Bash(.venv\\\\Scripts\\\\pip install *)",
+      "Bash(.venv/Scripts/python.exe main.py)",
+      "Bash(.venv/Scripts/python.exe main.py --dataset_path \"D:\\\\TestDataset\")",
+      "Bash(echo \"App started with PID: $!\")",
+      "Bash(.venv/Scripts/python.exe -m py_compile ui/detection/setup_dialog.py)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(echo \"App started: $!\")"
     ]
   }
 }
