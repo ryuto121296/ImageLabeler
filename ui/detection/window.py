@@ -479,6 +479,7 @@ class DetectionWindow(QMainWindow):
                 image_list.append({"filename": f"img/{filename}", "detected_classes": detected})
 
         payload = {
+            "model_type": "object_detection",
             "classes": [{"name": c.name} for c in self._project.classes],
             "images": image_list,
         }

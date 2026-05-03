@@ -35,6 +35,7 @@ def export_classification(project: ClassificationProject, output_path: str) -> N
             image_list.append({"filename": f"img/{filename}", "class": class_idx})
 
     payload = {
+        "model_type": "image_classification",
         "classes": [{"name": c.name} for c in project.classes],
         "images": image_list,
     }
@@ -58,6 +59,7 @@ def export_patch(project: PatchProject, output_path: str, default_class: int = -
             image_list.append({"filename": f"img/{filename}", "grid": resolved})
 
     payload = {
+        "model_type": "patch_classification",
         "classes": [{"name": c.name, "color": list(c.color)} for c in project.classes],
         "grid_rows": project.grid_rows,
         "grid_cols": project.grid_cols,
